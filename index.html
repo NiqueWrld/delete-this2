@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch and Display Firebase Data</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
+
+    <script type="module">
+        // Your web app's Firebase configuration
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA57yjci7ctjNT39HqL7sA-CGm7Hsu2zNg",
+            authDomain: "newdutmed.firebaseapp.com",
+            databaseURL: "https://newdutmed-default-rtdb.firebaseio.com",
+            projectId: "newdutmed",
+            storageBucket: "newdutmed.appspot.com",
+            messagingSenderId: "1099280739830",
+            appId: "1:1099280739830:web:6732a342f8b0fbb9b3ebd7"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataRef = ref(database, 'sensor_data');
+
+            // Function to update the display with the latest data
+            function updateDisplay(data) {
+                if (data) {
+                    const keys = Object.keys(data);
+                    const lastKey = keys[keys.length - 1];
+                    const { Timestamp: timestamp, "Water Level": waterLevel, "Water Purity": waterPurity, "Water Used": waterUsed } = data[lastKey];
+
+                    console.log(`${timestamp} : ${waterLevel}`);
+
+                    // Display the data in the HTML
+                    document.getElementById('timestamp').textContent = `Timestamp: ${timestamp}`;
+                    document.getElementById('waterLevel').textContent = `Water Level: ${waterLevel}`;
+                    document.getElementById('waterPurity').textContent = `Water Purity: ${waterPurity}`;
+                    document.getElementById('waterUsed').textContent = `Water Used: ${waterUsed}`;
+
+                    const simulatedData = {
+                        [lastKey]: {
+                            Timestamp: timestamp,
+                            "Water Level": waterLevel,
+                            "Water Purity": waterPurity,
+                            "Water Used": waterUsed
+                        }
+                    };
+
+                    updateChart(simulatedData[lastKey]);
+
+                }
+            }
+
+            // Listen for changes in Firebase
+            onValue(dataRef, (snapshot) => {
+                const data = snapshot.val();
+                updateDisplay(data);
+            });
+        });
+
+        const ctx = document.getElementById('waterDataChart').getContext('2d');
+        const waterDataChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Water Level',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Water Purity',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Water Used',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Timestamp'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                }
+            }
+        });
+
+        function updateChart(data) {
+            const { Timestamp: timestamp, "Water Level": waterLevel, "Water Purity": waterPurity, "Water Used": waterUsed } = data;
+
+            waterDataChart.data.labels.push(new Date(timestamp));
+            waterDataChart.data.datasets[0].data.push(waterLevel);
+            waterDataChart.data.datasets[1].data.push(waterPurity);
+            waterDataChart.data.datasets[2].data.push(waterUsed);
+
+            if (waterDataChart.data.labels.length > 20) {
+                waterDataChart.data.labels.shift();
+                waterDataChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            waterDataChart.update();
+        }
+
+    </script>
+</head>
+
+<body>
+    <h1>Firebase Data Display</h1>
+    <p id="timestamp"></p>
+    <p id="waterLevel"></p>
+    <p id="waterPurity"></p>
+    <p id="waterUsed"></p>
+
+    <div style="width: 80%; margin: auto;">
+        <canvas id="waterDataChart"></canvas>
+    </div>
+
+</body>
+
+</html>
